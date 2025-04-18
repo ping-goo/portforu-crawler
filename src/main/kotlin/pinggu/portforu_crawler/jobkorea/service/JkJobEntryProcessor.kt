@@ -1,0 +1,81 @@
+package pinggu.portforu_crawler.jobkorea.service
+
+import org.jsoup.Jsoup
+import org.openqa.selenium.WebElement
+import org.springframework.stereotype.Component
+import org.slf4j.LoggerFactory
+import pinggu.portforu_crawler.jobkorea.domain.JkJobEntry
+
+@Component
+class JkJobEntryProcessor(
+    private val detailParser: JkDetailParser,
+    private val jkTagService: JkTagService
+) {
+    private val logger = LoggerFactory.getLogger(JkJobEntryProcessor::class.java)
+
+    fun processJobEntry(element: WebElement): JkJobEntry? {
+        return try {
+            // 목록 페이지에서 기본 정보 추출 (제목과 상세 페이지 링크)
+            val title = element.text.trim()
+            val link = element.getAttribute("href").trim()
+            logger.info("Fetching detail page: $link")
+
+            // 상세 페이지 요청 전 2초~5초 사이의 랜덤 딜레이 추가
+            Thread.sleep(kotlin.random.Random.nextLong(2000, 5000))
+
+            // Jsoup을 사용해 상세 페이지 HTML을 가져옴
+            val detailHtml = Jsoup.connect(link)
+                .timeout(10000)
+                .get()
+                .html()
+            logger.debug("Fetched detail page HTML for job [{}]", link)
+
+            // 파서로 상세 페이지 데이터 추출
+            val detailData = detailParser.parseDetail(detailHtml)
+            if (detailData == null) {
+                logger.warn("Failed to parse detail for link: $link")
+                return null
+            }
+
+            // 스킬 문자열 파싱: detailData.skills를 쉼표 기준으로 분리하고, 빈 문자열 제거 후 다시 합침
+            val parsedSkills = detailData.skills
+                .split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .joinToString(", ")
+
+            // 엔티티 생성 시 모든 필요한 필드를 detailData의 값으로 할당
+            val jobEntry = JkJobEntry.create(
+                title = title,
+                company = detailData.company,  // JcDetailParser에서 파싱된 회사명
+                link = link,
+                duty = "개발자",                // 필요 시 상세 페이지나 목록에서 추가 정보 추출
+                experience = detailData.experience,
+                education = detailData.education,
+                keyAbilities = detailData.keyAbilities,
+                preference = detailData.preference,
+                employmentType = detailData.employmentType,
+                salary = detailData.salary,
+                location = detailData.location,
+                skills = parsedSkills,         // 파싱된 스킬 문자열 저장
+                startDate = detailData.startDate,
+                endDate = detailData.endDate
+            )
+
+            // 기술 태그 저장 (필요에 따라)
+            val tags = detailData.skills
+                .split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+            if (tags.isNotEmpty()) {
+                jkTagService.saveTags(tags, jobEntry)
+            }
+
+            jobEntry
+        } catch (e: Exception) {
+            logger.error("Job entry 처리 오류: {}", e.message)
+            null
+        }
+    }
+}
+
