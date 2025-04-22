@@ -24,23 +24,37 @@ data class JobEntry (
     val link: String,
 
     // 근무 조건 관련 정보
-    val salary: String,
-    val duty: String,
-    val employmentType: String,
+    @Column(nullable = false)
+    val salary: String = "-1",
+
+    @Column(nullable = false)
+    val duty: String = "-1",
+
+    @Column(nullable = false)
+    val employmentType: String = "-1",
 
     // 지원자격 정보
-    val educationLevel: String,
-    val experienceYears: String? = null, // Jk
-    val keyAbilities: String? = null, // Jk
+    @Column(nullable = false)
+    val educationLevel: String = "-1",
 
-    // 날짜 연산 할 것을 고려해서 ZonedDateTime 으로 함(jk-startDate, endDate)
+    @Column(nullable = false)
+    val experienceYears: String = "-1",  // JobKorea 전용
+
+    @Column(nullable = false)
+    val keyAbilities: String = "-1",     // JobKorea 전용
+
+    @Column(nullable = false)
+    val minExperienceYears: Int? = null,    // Saramin 전용
+
+    @Column(nullable = false)
+    val maxExperienceYears: Int? = null,    // Saramin 전용
+
+    @Column(nullable = true)
     val hiringStartAt: ZonedDateTime? = null,
+
+    @Column(nullable = true)
     val hiringEndAt: ZonedDateTime? = null,
 
-    // saramin 필드 - 경력
-    val minExperienceYears: Int? = null,
-    val maxExperienceYears: Int? = null,
-
-    // Jk 필드 - 스킬 태그
-    val skills: String? = null
+    @Column(nullable = true)
+    val skills: String? = null           // 기술 태그 (JobKorea 위주)
 )

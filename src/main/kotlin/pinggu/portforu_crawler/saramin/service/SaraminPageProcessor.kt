@@ -9,6 +9,7 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Component
 import pinggu.portforu_crawler.common.domain.JobEntry
 import pinggu.portforu_crawler.common.domain.JobEntryRepository
+import pinggu.portforu_crawler.common.util.orDefault
 import pinggu.portforu_crawler.saramin.SaraminScroller
 import java.time.Duration
 import java.time.LocalDate
@@ -64,20 +65,20 @@ class SaraminPageProcessor(
             val rawSkills = ""
             val entry = JobEntry(
                 title = title,
-                company = data.company,
-                location = data.location,
+                company = data.company.orDefault("-1"),
+                location = data.location.orDefault("-1"),
                 link = link,
-                salary = data.salary.toString(),
+                salary = data.salary.orDefault("-1"),
                 duty = "개발자",
-                employmentType = data.employmentType,
-                educationLevel = data.educationLevel,
+                employmentType = data.employmentType.orDefault("-1"),
+                educationLevel = data.educationLevel.orDefault("-1"),
                 experienceYears = "-1",
                 keyAbilities = "-1",
-                hiringStartAt = data.hiringStartAt ?: defaultDate,
-                hiringEndAt = data.hiringEndAt ?: defaultDate,
-                skills = rawSkills.ifBlank { "-1" },
-                minExperienceYears = data.minExperienceYears ?: -1,
-                maxExperienceYears = data.maxExperienceYears ?: -1
+                hiringStartAt = data.hiringStartAt.orDefault(),
+                hiringEndAt = data.hiringEndAt.orDefault(),
+                skills = rawSkills.orDefault("-1"),
+                minExperienceYears = data.minExperienceYears.orDefault(-1),
+                maxExperienceYears = data.maxExperienceYears.orDefault(-1)
             )
 
             try {

@@ -26,11 +26,5 @@ class SaraminCrawlerService(
         } finally {
             driver.quit()
         }
-//        val entries = pageProcessor.fetchEntries(pageNum, baseUrl, driver)
-//            entries.forEach { entryRepo.save(it) }
-//            entries
-//        } finally {
-//            driver.quit()
-//        }
     }
 }

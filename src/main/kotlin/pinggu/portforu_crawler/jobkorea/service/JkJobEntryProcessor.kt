@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import pinggu.portforu_crawler.common.domain.JobEntry
 import pinggu.portforu_crawler.common.domain.JobEntryRepository
+import pinggu.portforu_crawler.common.util.orDefault
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -18,10 +19,6 @@ class JkJobEntryProcessor(
     private val jobEntryRepository: JobEntryRepository
 ) {
     private val logger = LoggerFactory.getLogger(JkJobEntryProcessor::class.java)
-
-    private val defaultDate: ZonedDateTime = ZonedDateTime.of(
-        LocalDate.of(1970, 1, 1).atStartOfDay(), ZoneId.of("Asia/Seoul")
-    )
 
     fun processJobEntry(element: WebElement): JobEntry? {
         return try {
@@ -53,24 +50,25 @@ class JkJobEntryProcessor(
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
                 .joinToString(", ")
+                .ifBlank { "-1" }
 
             // 엔티티 생성 시 모든 필요한 필드를 detailData의 값으로 할당
             val jobEntry = JobEntry(
                 title = title,
-                company = detailData.company,
-                location = detailData.location,
+                company = detailData.company.orDefault("-1"),
+                location = detailData.location.orDefault("-1"),
                 link = link,
-                salary = detailData.salary,
+                salary = detailData.salary.orDefault("-1"),
                 duty = "개발자",
-                employmentType = detailData.employmentType,
-                educationLevel = detailData.educationLevel,
-                experienceYears = detailData.experience,
-                keyAbilities = detailData.keyAbilities,
-                hiringStartAt = detailData.hiringStartAt ?: defaultDate,
-                hiringEndAt = detailData.hiringEndAt ?: defaultDate,
+                employmentType = detailData.employmentType.orDefault("-1"),
+                educationLevel = detailData.educationLevel.orDefault("-1"),
+                experienceYears = detailData.experience.orDefault("-1"),
+                keyAbilities = detailData.keyAbilities.orDefault("-1"),
+                hiringStartAt = detailData.hiringStartAt.orDefault(),
+                hiringEndAt = detailData.hiringEndAt.orDefault(),
                 skills = parsedSkills,
                 minExperienceYears = -1,
-                maxExperienceYears = -1,
+                maxExperienceYears = -1
             )
 
             if (jobEntryRepository.findByLink(link) == null) {
