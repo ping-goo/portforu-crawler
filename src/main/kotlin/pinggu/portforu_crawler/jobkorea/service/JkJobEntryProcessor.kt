@@ -4,16 +4,26 @@ import org.jsoup.Jsoup
 import org.openqa.selenium.WebElement
 import org.springframework.stereotype.Component
 import org.slf4j.LoggerFactory
-import pinggu.portforu_crawler.jobkorea.domain.JkJobEntry
+import org.springframework.dao.DataIntegrityViolationException
+import pinggu.portforu_crawler.common.domain.JobEntry
+import pinggu.portforu_crawler.common.domain.JobEntryRepository
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @Component
 class JkJobEntryProcessor(
     private val detailParser: JkDetailParser,
-    private val jkTagService: JkTagService
+    private val jkTagService: JkTagService,
+    private val jobEntryRepository: JobEntryRepository
 ) {
     private val logger = LoggerFactory.getLogger(JkJobEntryProcessor::class.java)
 
-    fun processJobEntry(element: WebElement): JkJobEntry? {
+    private val defaultDate: ZonedDateTime = ZonedDateTime.of(
+        LocalDate.of(1970, 1, 1).atStartOfDay(), ZoneId.of("Asia/Seoul")
+    )
+
+    fun processJobEntry(element: WebElement): JobEntry? {
         return try {
             // 목록 페이지에서 기본 정보 추출 (제목과 상세 페이지 링크)
             val title = element.text.trim()
@@ -45,33 +55,44 @@ class JkJobEntryProcessor(
                 .joinToString(", ")
 
             // 엔티티 생성 시 모든 필요한 필드를 detailData의 값으로 할당
-            val jobEntry = JkJobEntry.create(
+            val jobEntry = JobEntry(
                 title = title,
-                company = detailData.company,  // JcDetailParser에서 파싱된 회사명
-                link = link,
-                duty = "개발자",                // 필요 시 상세 페이지나 목록에서 추가 정보 추출
-                experience = detailData.experience,
-                education = detailData.education,
-                keyAbilities = detailData.keyAbilities,
-                preference = detailData.preference,
-                employmentType = detailData.employmentType,
-                salary = detailData.salary,
+                company = detailData.company,
                 location = detailData.location,
-                skills = parsedSkills,         // 파싱된 스킬 문자열 저장
-                startDate = detailData.startDate,
-                endDate = detailData.endDate
+                link = link,
+                salary = detailData.salary,
+                duty = "개발자",
+                employmentType = detailData.employmentType,
+                educationLevel = detailData.educationLevel,
+                experienceYears = detailData.experience,
+                keyAbilities = detailData.keyAbilities,
+                hiringStartAt = detailData.hiringStartAt ?: defaultDate,
+                hiringEndAt = detailData.hiringEndAt ?: defaultDate,
+                skills = parsedSkills,
+                minExperienceYears = -1,
+                maxExperienceYears = -1,
             )
 
-            // 기술 태그 저장 (필요에 따라)
-            val tags = detailData.skills
-                .split(",")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-            if (tags.isNotEmpty()) {
-                jkTagService.saveTags(tags, jobEntry)
+            if (jobEntryRepository.findByLink(link) == null) {
+                try {
+                    jobEntryRepository.save(jobEntry)
+
+                    // 저장 성공한 경우에만 태그 저장
+                    val tags = detailData.skills
+                        .split(",")
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+
+                    if (tags.isNotEmpty()) {
+                        jkTagService.saveTags(tags, jobEntry)
+                    }
+
+                } catch (e: DataIntegrityViolationException) {
+                    logger.warn("중복 링크로 저장 실패: {}", link)
+                }
             }
 
-            jobEntry
+            return jobEntry
         } catch (e: Exception) {
             logger.error("Job entry 처리 오류: {}", e.message)
             null

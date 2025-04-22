@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pinggu.portforu_crawler.common.SkillTag
 import pinggu.portforu_crawler.common.SkillTagRepository
-import pinggu.portforu_crawler.jobkorea.domain.JkJobEntry
+import pinggu.portforu_crawler.common.domain.JobEntry
 import java.util.*
 
 @Service
@@ -18,7 +18,7 @@ class JkTagService(
     }
 
     @Transactional
-    fun saveTags(tags: List<String>, jobEntry: JkJobEntry) {
+    fun saveTags(tags: List<String>, jobEntry: JobEntry) {
         tags.asSequence()
             .map { it.trim().lowercase(Locale.getDefault()) }
             .filter { it.isNotBlank() && it != "0" && !it.contains("error") }
