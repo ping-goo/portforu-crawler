@@ -6,9 +6,6 @@ import java.time.ZonedDateTime
 @Entity
 @Table(name = "job_postings")
 data class JobPosting(
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
 
     @Column(nullable = false)
     val title: String,
@@ -54,4 +51,4 @@ data class JobPosting(
 
     @Column
     val skills: String? = null
-)
+) : BaseEntity()
