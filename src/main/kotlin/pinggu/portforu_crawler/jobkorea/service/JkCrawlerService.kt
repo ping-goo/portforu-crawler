@@ -7,7 +7,7 @@ import org.openqa.selenium.By
 import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import pinggu.portforu_crawler.common.domain.JobEntry
+import pinggu.portforu_crawler.common.domain.JobPosting
 import pinggu.portforu_crawler.config.BrowserDriverFactory
 import java.time.Duration
 
@@ -24,10 +24,10 @@ class JkCrawlerService(
      * 그 뒤엔 요청한 page 파라미터에 해당하는 페이지만 크롤링.
      */
     @Transactional
-    suspend fun crawlPage(page: Int = 1): List<JobEntry> = withContext(Dispatchers.IO) {
+    suspend fun crawlPage(page: Int = 1): List<JobPosting> = withContext(Dispatchers.IO) {
         val driver = browserDriverFactory.createDriver()
         val wait = WebDriverWait(driver, Duration.ofSeconds(30))
-        val processedJobs = mutableListOf<JobEntry>()
+        val processedJobs = mutableListOf<JobPosting>()
         try {
             // 1) 필터 적용용 첫 페이지
             val filterUrl = "https://www.jobkorea.co.kr/recruit/joblist?menucode=search#anchorGICnt_1"

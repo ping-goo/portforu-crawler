@@ -7,8 +7,8 @@ import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Component
-import pinggu.portforu_crawler.common.domain.JobEntry
-import pinggu.portforu_crawler.common.domain.JobEntryRepository
+import pinggu.portforu_crawler.common.domain.JobPosting
+import pinggu.portforu_crawler.common.domain.JobPostingRepository
 import pinggu.portforu_crawler.common.util.orDefault
 import pinggu.portforu_crawler.saramin.SaraminScroller
 import java.time.Duration
@@ -19,7 +19,7 @@ import kotlin.random.Random
 
 @Component
 class SaraminPageProcessor(
-    private val jobEntryRepository: JobEntryRepository,
+    private val jobPostingRepository: JobPostingRepository,
     private val detailParser: SaraminDetailParser
 ) {
     private val log = LoggerFactory.getLogger(SaraminPageProcessor::class.java)
@@ -28,8 +28,8 @@ class SaraminPageProcessor(
         LocalDate.of(1970, 1, 1).atStartOfDay(), ZoneId.of("Asia/Seoul")
     )
 
-    fun fetchEntries(pageNum: Int, baseUrl: String, driver: WebDriver): List<JobEntry> {
-        val results = mutableListOf<JobEntry>()
+    fun fetchEntries(pageNum: Int, baseUrl: String, driver: WebDriver): List<JobPosting> {
+        val results = mutableListOf<JobPosting>()
         driver.get("$baseUrl$pageNum")
 
         SaraminScroller.scrollToBottom(driver)  // 목록 첫 진입 시 스크롤
@@ -43,7 +43,7 @@ class SaraminPageProcessor(
             }
 
         for ((idx, link) in links.withIndex()) {
-            if (jobEntryRepository.findByLink(link) != null) continue
+            if (jobPostingRepository.findByLink(link) != null) continue
 
             Thread.sleep(Random.nextLong(200, 1000))
             driver.get(link)
@@ -64,7 +64,7 @@ class SaraminPageProcessor(
 
             val title = driver.findElement(By.cssSelector("h1.tit_job")).text.trim()
             val rawSkills = ""
-            val entry = JobEntry(
+            val entry = JobPosting(
                 title = title,
                 company = data.company.orDefault("-1"),
                 location = data.location.orDefault("-1"),
@@ -83,7 +83,7 @@ class SaraminPageProcessor(
             )
 
             try {
-                jobEntryRepository.save(entry)
+                jobPostingRepository.save(entry)
                 results += entry
                 log.info("Saved Saramin entry #${idx + 1}: ${entry.title}")
             } catch (e: DataIntegrityViolationException) {

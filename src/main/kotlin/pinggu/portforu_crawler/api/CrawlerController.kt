@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import pinggu.portforu_crawler.common.domain.JobEntry
+import pinggu.portforu_crawler.common.domain.JobPosting
 import pinggu.portforu_crawler.jobkorea.service.JkCrawlerService
 import pinggu.portforu_crawler.saramin.service.SaraminCrawlerService
 
@@ -18,13 +18,13 @@ class CrawlerController(
 ) {
 
     @GetMapping("/jk")
-    suspend fun crawlJc(@RequestParam(defaultValue = "1") page: Int): ResponseEntity<List<JobEntry>> {
+    suspend fun crawlJc(@RequestParam(defaultValue = "1") page: Int): ResponseEntity<List<JobPosting>> {
         val entries = jkCrawlerService.crawlPage(page)
         return ResponseEntity.ok(entries)
     }
 
     @GetMapping("/saramin")
-    suspend fun crawlerSaramin(@RequestParam page: Int): List<JobEntry> {
+    suspend fun crawlerSaramin(@RequestParam page: Int): List<JobPosting> {
         return saraminCrawlerService.harvestPage(page)
     }
 }

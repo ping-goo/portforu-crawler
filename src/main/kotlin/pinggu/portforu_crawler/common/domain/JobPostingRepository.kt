@@ -4,6 +4,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface JobEntryRepository : JpaRepository<JobEntry, Long> {
-    fun findByLink(link: String): JobEntry?
+interface JobPostingRepository : JpaRepository<JobPosting, Long> {
+    fun findByLink(link: String): JobPosting?
 }

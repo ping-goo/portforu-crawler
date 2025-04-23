@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service
 import pinggu.portforu_crawler.jobkorea.service.JkCrawlerService
 import pinggu.portforu_crawler.saramin.service.SaraminCrawlerService
 import kotlinx.coroutines.async
-import pinggu.portforu_crawler.common.domain.JobEntry
+import pinggu.portforu_crawler.common.domain.JobPosting
 
 @Service
 class ParallelCrawlerService (
@@ -16,7 +16,7 @@ class ParallelCrawlerService (
     suspend fun crawlBoth(
         jkPage : Int = 1,
         saraminPage: Int = 1
-    ): Pair<List<JobEntry>, List<JobEntry>> = coroutineScope {
+    ): Pair<List<JobPosting>, List<JobPosting>> = coroutineScope {
         // IO 바운드 작업
         val jkDeferred = async(Dispatchers.IO){
             jkCrawlerService.crawlPage(jkPage)
