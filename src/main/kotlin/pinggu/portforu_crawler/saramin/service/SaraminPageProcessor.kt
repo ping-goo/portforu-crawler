@@ -22,7 +22,9 @@ class SaraminPageProcessor(
     fun fetchEntries(pageNum: Int, baseUrl: String, driver: WebDriver): List<SaraminJobEntry> {
         val results = mutableListOf<SaraminJobEntry>()
         driver.get("$baseUrl$pageNum")
+
         SaraminScroller.scrollToBottom(driver)  // 목록 첫 진입 시 스크롤
+
         log.info("Loading page: $baseUrl$pageNum")
 
         val links = driver.findElements(By.cssSelector(".job_tit"))
@@ -73,6 +75,7 @@ class SaraminPageProcessor(
 
             WebDriverWait(driver, Duration.ofSeconds(10))
                 .until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".job_tit")))
+
 
             SaraminScroller.scrollToBottom(driver)
         }
