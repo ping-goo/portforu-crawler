@@ -31,7 +31,9 @@ class SaraminPageProcessor(
     fun fetchEntries(pageNum: Int, baseUrl: String, driver: WebDriver): List<JobEntry> {
         val results = mutableListOf<JobEntry>()
         driver.get("$baseUrl$pageNum")
-        SaraminScroller.scrollToBottom(driver)  // 목록 첫 진입 시 스크롤 :contentReference[oaicite:0]{index=0}&#8203;:contentReference[oaicite:1]{index=1}
+
+        SaraminScroller.scrollToBottom(driver)  // 목록 첫 진입 시 스크롤
+
         log.info("Loading page: $baseUrl$pageNum")
 
         val links = driver.findElements(By.cssSelector(".job_tit"))
@@ -52,7 +54,6 @@ class SaraminPageProcessor(
                 // 상세 파싱 실패 시에도 목록으로 복귀 후 대기
                 driver.navigate().back()
 
-                // ◀ 변경: 목록 페이지 요소 로드 대기
                 WebDriverWait(driver, Duration.ofSeconds(10))
                     .until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".job_tit")))
 
@@ -92,11 +93,10 @@ class SaraminPageProcessor(
             // 목록 페이지로 복귀
             driver.navigate().back()
 
-            // ◀ 변경: 목록 페이지 요소 로드 대기
             WebDriverWait(driver, Duration.ofSeconds(10))
                 .until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".job_tit")))
 
-            // ◀ 변경: 제대로 로드된 목록에 대해서만 스크롤
+
             SaraminScroller.scrollToBottom(driver)
         }
 

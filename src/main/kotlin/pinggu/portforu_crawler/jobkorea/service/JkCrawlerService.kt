@@ -20,7 +20,7 @@ class JkCrawlerService(
     private val logger = LoggerFactory.getLogger(JkCrawlerService::class.java)
 
     /**
-     * 필터는 첫 페이지(1)에서만 걸고,
+     * 필터는 첫 페이지에서만 걸고,
      * 그 뒤엔 요청한 page 파라미터에 해당하는 페이지만 크롤링.
      */
     @Transactional

@@ -25,12 +25,11 @@ class JkJobEntryProcessor(
             // 목록 페이지에서 기본 정보 추출 (제목과 상세 페이지 링크)
             val title = element.text.trim()
             val link = element.getAttribute("href").trim()
-            logger.info("Fetching detail page: $link")
+            logger.info("Fetching detail page: {}", link)
 
             // 상세 페이지 요청 전 2초~5초 사이의 랜덤 딜레이 추가
             Thread.sleep(kotlin.random.Random.nextLong(2000, 5000))
 
-            // Jsoup을 사용해 상세 페이지 HTML을 가져옴
             val detailHtml = Jsoup.connect(link)
                 .timeout(10000)
                 .get()
@@ -40,11 +39,11 @@ class JkJobEntryProcessor(
             // 파서로 상세 페이지 데이터 추출
             val detailData = detailParser.parseDetail(detailHtml)
             if (detailData == null) {
-                logger.warn("Failed to parse detail for link: $link")
+                logger.warn("Failed to parse detail for link: {}", link)
                 return null
             }
 
-            // 스킬 문자열 파싱: detailData.skills를 쉼표 기준으로 분리하고, 빈 문자열 제거 후 다시 합침
+            // 스킬 문자열 파싱
             val parsedSkills = detailData.skills
                 .split(",")
                 .map { it.trim() }
@@ -70,7 +69,7 @@ class JkJobEntryProcessor(
                 minExperienceYears = -1,
                 maxExperienceYears = -1
             )
-
+           
             if (jobEntryRepository.findByLink(link) == null) {
                 try {
                     jobEntryRepository.save(jobEntry)
@@ -97,4 +96,3 @@ class JkJobEntryProcessor(
         }
     }
 }
-
