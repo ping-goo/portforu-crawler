@@ -7,7 +7,7 @@ data class SaraminJobDetailData(
     val location: String,
     val employmentType: String,
     val educationLevel: String,
-    val salary: Int,
+    val salary: String,
     val minExperienceYears: Int?,
     val maxExperienceYears: Int?,
     val hiringStartAt: ZonedDateTime?,

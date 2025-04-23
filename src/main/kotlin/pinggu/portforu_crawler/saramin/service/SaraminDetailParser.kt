@@ -49,8 +49,9 @@ class SaraminDetailParser {
             // 급여
             val salaryText = driver.findElement(
                 By.xpath("//dt[text()='급여']/following-sibling::dd")
-            ).text
-            val salary = salaryText.filter { it.isDigit() }.toIntOrNull() ?: 0
+            ).getAttribute("innerText").trim()
+            // 공백만 있는 경우에만 "-1", 나머지는 글자 그대로 저장
+            val salary = if (salaryText.isBlank()) "-1" else salaryText
 
             // 근무지역
             val location = driver.findElement(

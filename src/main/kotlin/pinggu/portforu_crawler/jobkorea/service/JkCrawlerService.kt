@@ -7,14 +7,12 @@ import org.openqa.selenium.By
 import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import pinggu.portforu_crawler.common.domain.JobEntry
 import pinggu.portforu_crawler.config.BrowserDriverFactory
-import pinggu.portforu_crawler.jobkorea.domain.JkJobEntry
-import pinggu.portforu_crawler.jobkorea.domain.JkJobEntryRepository
 import java.time.Duration
 
 @Service
 class JkCrawlerService(
-    private val jkJobEntryRepository: JkJobEntryRepository,
     private val jobEntryProcessor: JkJobEntryProcessor,
     private val browserDriverFactory: BrowserDriverFactory,
     private val jkFilterManager: JkFilterManager
@@ -26,10 +24,10 @@ class JkCrawlerService(
      * 그 뒤엔 요청한 page 파라미터에 해당하는 페이지만 크롤링.
      */
     @Transactional
-    suspend fun crawlPage(page: Int = 1): List<JkJobEntry> = withContext(Dispatchers.IO) {
+    suspend fun crawlPage(page: Int = 1): List<JobEntry> = withContext(Dispatchers.IO) {
         val driver = browserDriverFactory.createDriver()
         val wait = WebDriverWait(driver, Duration.ofSeconds(30))
-        val processedJobs = mutableListOf<JkJobEntry>()
+        val processedJobs = mutableListOf<JobEntry>()
         try {
             // 1) 필터 적용용 첫 페이지
             val filterUrl = "https://www.jobkorea.co.kr/recruit/joblist?menucode=search#anchorGICnt_1"
@@ -45,8 +43,7 @@ class JkCrawlerService(
             val jobElements = driver.findElements(By.cssSelector("strong a.link.normalLog"))
             for (el in jobElements) {
                 val entry = jobEntryProcessor.processJobEntry(el)
-                if (entry != null && jkJobEntryRepository.findByLink(entry.link) == null) {
-                    jkJobEntryRepository.save(entry)
+                if (entry != null) {
                     processedJobs += entry
                 }
             }
