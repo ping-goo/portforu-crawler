@@ -7,93 +7,85 @@ import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import pinggu.portforu_crawler.common.domain.JobPosting
 import pinggu.portforu_crawler.common.domain.JobPostingRepository
+import pinggu.portforu_crawler.config.UrlBloomFilterService
 import pinggu.portforu_crawler.common.util.SlackNotifier
 import pinggu.portforu_crawler.stats.CrawlerStats
 import pinggu.portforu_crawler.common.util.SkillNormalizer
+import kotlin.random.Random
 
 @Component
 class JkJobEntryProcessor(
     private val detailParser: JkDetailParser,
     private val jkTagService: JkTagService,
-    private val crawlerStats: CrawlerStats,
-    private val slackNotifier: SlackNotifier,
-    private val jobPostingRepository: JobPostingRepository
+    private val jobPostingRepository: JobPostingRepository,
+    private val urlBloomFilter: UrlBloomFilterService,  
+    private val slackNotifier: SlackNotifier,          
+    private val crawlerStats: CrawlerStats          
 ) {
     private val logger = LoggerFactory.getLogger(JkJobEntryProcessor::class.java)
 
     fun processJobEntry(element: WebElement): JobPosting? {
-        return try {
-            // 목록 페이지에서 기본 정보 추출 (제목과 상세 페이지 링크)
-            val title = element.text.trim()
-            val link = element.getAttribute("href").trim()
-            logger.info("Fetching detail page: {}", link)
+        val title = element.text.trim()
+        val link = element.getAttribute("href").trim()
 
-            // 상세 페이지 요청 전 2초~5초 사이의 랜덤 딜레이 추가
-            Thread.sleep(kotlin.random.Random.nextLong(2000, 5000))
-
-            val detailHtml = Jsoup.connect(link)
-                .timeout(10000)
-                .get()
-                .html()
-            logger.debug("Fetched detail page HTML for job [{}]", link)
-
-            // 파서로 상세 페이지 데이터 추출
-            val detailData = detailParser.parseDetail(detailHtml)
-            if (detailData == null) {
-                crawlerStats.parseFailCount.incrementAndGet()
-                slackNotifier.send("JobKorea 파싱 실패: $link")
-                logger.warn("Failed to parse detail for link: {}", link)
-                return null
-            }
-
-            // 스킬 문자열 파싱
-            val tags = SkillNormalizer.normalize(detailData.skills)
-            val parsedSkills = tags.joinToString(", ").ifBlank { "-1" }
-
-            // 엔티티 생성 시 모든 필요한 필드를 detailData의 값으로 할당
-            val jobPosting = JobPosting(
-                title           = title,
-                company         = detailData.company,
-                location        = detailData.location,
-                link            = link,
-                salary          = detailData.salary,
-                duty            = "개발자",
-                employmentType  = detailData.employmentType,
-                educationLevel  = detailData.educationLevel,
-                experienceYears = detailData.experience,
-                keyAbilities    = detailData.keyAbilities,
-                minExperienceYears = -1,
-                maxExperienceYears = -1,
-                hiringStartAt      = detailData.hiringStartAt,
-                hiringEndAt        = detailData.hiringEndAt,
-                skills             = parsedSkills
-            )
-           
-            if (jobPostingRepository.findByLink(link) == null) {
-                try {
-                    jobPostingRepository.save(jobPosting)
-                    crawlerStats.successCount.incrementAndGet()
-
-                    // 저장 성공한 경우에만 태그 저장
-                    val tags = detailData.skills
-                        .split(",")
-                        .map { it.trim() }
-                        .filter { it.isNotEmpty() }
-
-                    if (tags.isNotEmpty()) {
-                        jkTagService.saveTags(tags, jobPosting)
-                    }
-
-                } catch (e: DataIntegrityViolationException) {
-                    crawlerStats.saveFailCount.incrementAndGet()
-                    logger.warn("중복 링크로 저장 실패: {}", link)
-                }
-            }
-
-            return jobPosting
-        } catch (e: Exception) {
-            logger.error("Job entry 처리 오류: {}", e.message)
-            null
+        // Bloom Filter로 중복 URL 확인
+        if (!urlBloomFilter.isNewUrl(link)) {
+            logger.debug("이미 처리된 링크(Bloom), 스킵: {}", link)
+            return null
         }
+
+        // 상세 페이지 요청 전 2초~5초 사이의 랜덤 딜레이 추가
+        Thread.sleep(Random.nextLong(2000, 5000))
+
+        val detailHtml = Jsoup.connect(link)
+            .timeout(10000)
+            .get()
+            .html()
+        logger.debug("Fetched detail page HTML for job [{}]", link)
+
+        // 파서로 상세 페이지 데이터 추출
+        val detailData = detailParser.parseDetail(detailHtml) ?: run {
+            crawlerStats.parseFailCount.incrementAndGet()
+            slackNotifier.send("JobKorea 파싱 실패: $link")
+            logger.warn("Failed to parse detail for link: {}", link)
+            return null
+        }
+
+        val tags = SkillNormalizer.normalize(detailData.skills)
+        val parsedSkills = tags.joinToString(", ").ifBlank { "-1" }
+
+        val jobPosting = JobPosting(
+            title = title,
+            company = detailData.company,
+            location = detailData.location,
+            link = link,
+            salary = detailData.salary,
+            duty = "개발자",
+            employmentType = detailData.employmentType,
+            educationLevel = detailData.educationLevel,
+            experienceYears = detailData.experience,
+            keyAbilities = detailData.keyAbilities,
+            minExperienceYears = -1,
+            maxExperienceYears = -1,
+            hiringStartAt = detailData.hiringStartAt,
+            hiringEndAt = detailData.hiringEndAt,
+            skills = parsedSkills
+        )
+
+        // 중복 링크가 아니면 DB에 저장
+        if (jobPostingRepository.findByLink(link) == null) {
+            try {
+                jobPostingRepository.save(jobPosting)
+         
+                jkTagService.saveTags(tags, jobPosting)
+                crawlerStats.successCount.incrementAndGet()
+                logger.info("Saved JobKorea entry: {}", jobPosting.title)
+            } catch (e: DataIntegrityViolationException) {
+                crawlerStats.saveFailCount.incrementAndGet()
+                logger.warn("중복 링크로 저장 실패: {}", link)
+            }
+        }
+
+        return jobPosting
     }
 }

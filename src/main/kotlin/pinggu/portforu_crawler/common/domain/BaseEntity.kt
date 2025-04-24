@@ -32,4 +32,5 @@ abstract class BaseEntity {
     fun restore() {
         this.isDeleted = false
     }
+
 }
