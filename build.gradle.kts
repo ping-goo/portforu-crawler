@@ -49,6 +49,8 @@ dependencies {
 	implementation("com.squareup.okhttp3:okhttp:4.10.0")
 	implementation("org.json:json:20230227")
 
+	// redis
+	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 

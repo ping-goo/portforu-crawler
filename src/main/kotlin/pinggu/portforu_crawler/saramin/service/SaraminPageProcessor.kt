@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component
 import pinggu.portforu_crawler.common.domain.JobPosting
 import pinggu.portforu_crawler.common.domain.JobPostingRepository
 import pinggu.portforu_crawler.common.util.orDefault
+import pinggu.portforu_crawler.config.UrlBloomFilterService
 import pinggu.portforu_crawler.saramin.SaraminScroller
 import java.time.Duration
 import java.time.LocalDate
@@ -20,7 +21,8 @@ import kotlin.random.Random
 @Component
 class SaraminPageProcessor(
     private val jobPostingRepository: JobPostingRepository,
-    private val detailParser: SaraminDetailParser
+    private val detailParser: SaraminDetailParser,
+    private val urlBloomFilter: UrlBloomFilterService
 ) {
     private val log = LoggerFactory.getLogger(SaraminPageProcessor::class.java)
 
@@ -42,25 +44,26 @@ class SaraminPageProcessor(
                 else section.findElement(By.cssSelector("a.str_tit")).getAttribute("href")
             }
 
+
         for ((idx, link) in links.withIndex()) {
+
+            if (!urlBloomFilter.isNewUrl(link)) {
+                log.debug("이미 처리된 링크(Bloom), 스킵: {}", link)
+                continue
+            }
+
             if (jobPostingRepository.findByLink(link) != null) continue
 
             Thread.sleep(Random.nextLong(200, 1000))
             driver.get(link)
 
-            // 상세 페이지 파싱
             val data = detailParser.parseDetail(driver)
             if (data == null) {
-                // 상세 파싱 실패 시에도 목록으로 복귀 후 대기
                 driver.navigate().back()
-
                 WebDriverWait(driver, Duration.ofSeconds(10))
                     .until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".job_tit")))
-
                 continue
             }
-
-            // 엔티티 생성 및 저장
 
             val title = driver.findElement(By.cssSelector("h1.tit_job")).text.trim()
             val rawSkills = ""
@@ -75,8 +78,8 @@ class SaraminPageProcessor(
                 educationLevel = data.educationLevel.orDefault("-1"),
                 experienceYears = "-1",
                 keyAbilities = "-1",
-                hiringStartAt = data.hiringStartAt.orDefault(),
-                hiringEndAt = data.hiringEndAt.orDefault(),
+                hiringStartAt = data.hiringStartAt.orDefault(defaultDate),
+                hiringEndAt = data.hiringEndAt.orDefault(defaultDate),
                 skills = rawSkills.orDefault("-1"),
                 minExperienceYears = data.minExperienceYears.orDefault(-1),
                 maxExperienceYears = data.maxExperienceYears.orDefault(-1)
@@ -90,17 +93,12 @@ class SaraminPageProcessor(
                 log.warn("중복 링크로 저장 실패: {}", link)
             }
 
-            // 목록 페이지로 복귀
             driver.navigate().back()
-
             WebDriverWait(driver, Duration.ofSeconds(10))
                 .until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".job_tit")))
-
-
             SaraminScroller.scrollToBottom(driver)
         }
 
         return results
     }
 }
-
