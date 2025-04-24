@@ -23,16 +23,13 @@ abstract class BaseEntity {
     var updatedAt: Instant? = null
 
     @Column
-    var deletedAt: Instant? = null
+    var isDeleted: Boolean = false
 
-    fun isDeleted(): Boolean = deletedAt != null
-
-    fun delete(): Long? {
-        this.deletedAt = Instant.now()
-        return this.id
+    fun softDelete() {
+        this.isDeleted = true
     }
 
     fun restore() {
-        this.deletedAt = null
+        this.isDeleted = false
     }
 }
