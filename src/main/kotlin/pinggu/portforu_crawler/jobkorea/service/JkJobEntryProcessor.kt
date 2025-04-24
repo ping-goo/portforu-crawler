@@ -9,6 +9,7 @@ import pinggu.portforu_crawler.common.domain.JobPosting
 import pinggu.portforu_crawler.common.domain.JobPostingRepository
 import pinggu.portforu_crawler.common.util.SlackNotifier
 import pinggu.portforu_crawler.stats.CrawlerStats
+import pinggu.portforu_crawler.common.util.SkillNormalizer
 
 @Component
 class JkJobEntryProcessor(
@@ -46,12 +47,8 @@ class JkJobEntryProcessor(
             }
 
             // 스킬 문자열 파싱
-            val parsedSkills = detailData.skills
-                .split(",")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-                .joinToString(", ")
-                .ifBlank { "-1" }
+            val tags = SkillNormalizer.normalize(detailData.skills)
+            val parsedSkills = tags.joinToString(", ").ifBlank { "-1" }
 
             // 엔티티 생성 시 모든 필요한 필드를 detailData의 값으로 할당
             val jobPosting = JobPosting(
