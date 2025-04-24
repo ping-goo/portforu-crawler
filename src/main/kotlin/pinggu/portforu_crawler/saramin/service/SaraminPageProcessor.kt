@@ -9,8 +9,10 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Component
 import pinggu.portforu_crawler.common.domain.JobPosting
 import pinggu.portforu_crawler.common.domain.JobPostingRepository
+import pinggu.portforu_crawler.common.util.SlackNotifier
 import pinggu.portforu_crawler.common.util.orDefault
 import pinggu.portforu_crawler.saramin.SaraminScroller
+import pinggu.portforu_crawler.stats.CrawlerStats
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
@@ -20,7 +22,9 @@ import kotlin.random.Random
 @Component
 class SaraminPageProcessor(
     private val jobPostingRepository: JobPostingRepository,
-    private val detailParser: SaraminDetailParser
+    private val detailParser: SaraminDetailParser,
+    private val crawlerStats: CrawlerStats,
+    private val slackNotifier: SlackNotifier
 ) {
     private val log = LoggerFactory.getLogger(SaraminPageProcessor::class.java)
 
@@ -51,6 +55,9 @@ class SaraminPageProcessor(
             // 상세 페이지 파싱
             val data = detailParser.parseDetail(driver)
             if (data == null) {
+                crawlerStats.parseFailCount.incrementAndGet()
+                slackNotifier.send("Saramin 파싱 실패: $link")
+
                 // 상세 파싱 실패 시에도 목록으로 복귀 후 대기
                 driver.navigate().back()
 
@@ -84,9 +91,11 @@ class SaraminPageProcessor(
 
             try {
                 jobPostingRepository.save(entry)
+                crawlerStats.successCount.incrementAndGet()
                 results += entry
                 log.info("Saved Saramin entry #${idx + 1}: ${entry.title}")
             } catch (e: DataIntegrityViolationException) {
+                crawlerStats.saveFailCount.incrementAndGet()
                 log.warn("중복 링크로 저장 실패: {}", link)
             }
 

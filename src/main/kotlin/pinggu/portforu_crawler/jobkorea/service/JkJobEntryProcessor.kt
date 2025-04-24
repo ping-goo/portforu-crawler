@@ -7,11 +7,15 @@ import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import pinggu.portforu_crawler.common.domain.JobPosting
 import pinggu.portforu_crawler.common.domain.JobPostingRepository
+import pinggu.portforu_crawler.common.util.SlackNotifier
+import pinggu.portforu_crawler.stats.CrawlerStats
 
 @Component
 class JkJobEntryProcessor(
     private val detailParser: JkDetailParser,
     private val jkTagService: JkTagService,
+    private val crawlerStats: CrawlerStats,
+    private val slackNotifier: SlackNotifier,
     private val jobPostingRepository: JobPostingRepository
 ) {
     private val logger = LoggerFactory.getLogger(JkJobEntryProcessor::class.java)
@@ -35,6 +39,8 @@ class JkJobEntryProcessor(
             // 파서로 상세 페이지 데이터 추출
             val detailData = detailParser.parseDetail(detailHtml)
             if (detailData == null) {
+                crawlerStats.parseFailCount.incrementAndGet()
+                slackNotifier.send("JobKorea 파싱 실패: $link")
                 logger.warn("Failed to parse detail for link: {}", link)
                 return null
             }
@@ -69,6 +75,7 @@ class JkJobEntryProcessor(
             if (jobPostingRepository.findByLink(link) == null) {
                 try {
                     jobPostingRepository.save(jobPosting)
+                    crawlerStats.successCount.incrementAndGet()
 
                     // 저장 성공한 경우에만 태그 저장
                     val tags = detailData.skills
@@ -81,6 +88,7 @@ class JkJobEntryProcessor(
                     }
 
                 } catch (e: DataIntegrityViolationException) {
+                    crawlerStats.saveFailCount.incrementAndGet()
                     logger.warn("중복 링크로 저장 실패: {}", link)
                 }
             }

@@ -1,4 +1,4 @@
-package pinggu.portforu_crawler.config
+package pinggu.portforu_crawler.scheduler
 
 import org.springframework.scheduling.annotation.Scheduled
 import org.slf4j.LoggerFactory
