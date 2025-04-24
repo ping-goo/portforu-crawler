@@ -8,29 +8,29 @@ import java.time.Instant
 
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener::class)
-open class BaseEntity {
+abstract class BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    open var id: Long? = null
+    var id: Long? = null
 
     @CreatedDate
-    @Column(updatable = false, nullable = false)
-    open var createdAt: Instant? = null
+    @Column(updatable = false)
+    var createdAt: Instant? = null
 
     @LastModifiedDate
-    @Column(nullable = false)
-    open var updatedAt: Instant? = null
+    @Column
+    var updatedAt: Instant? = null
 
-    @Column(name = "is_deleted", nullable = false)
-    open var isDeleted: Boolean = false
+    @Column
+    var isDeleted: Boolean = false
 
-    fun softDelete(): Long? {
+    fun softDelete() {
         this.isDeleted = true
-        return this.id
     }
 
     fun restore() {
         this.isDeleted = false
     }
+
 }
