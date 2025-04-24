@@ -22,6 +22,8 @@ import kotlin.random.Random
 class SaraminPageProcessor(
     private val jobPostingRepository: JobPostingRepository,
     private val detailParser: SaraminDetailParser,
+    private val crawlerStats: CrawlerStats,
+    private val slackNotifier: SlackNotifier,
     private val urlBloomFilter: UrlBloomFilterService
 ) {
     private val log = LoggerFactory.getLogger(SaraminPageProcessor::class.java)
@@ -44,7 +46,6 @@ class SaraminPageProcessor(
                 else section.findElement(By.cssSelector("a.str_tit")).getAttribute("href")
             }
 
-
         for ((idx, link) in links.withIndex()) {
 
             if (!urlBloomFilter.isNewUrl(link)) {
@@ -59,6 +60,9 @@ class SaraminPageProcessor(
 
             val data = detailParser.parseDetail(driver)
             if (data == null) {
+                crawlerStats.parseFailCount.incrementAndGet()
+                slackNotifier.send("Saramin 파싱 실패: $link")
+
                 driver.navigate().back()
                 WebDriverWait(driver, Duration.ofSeconds(10))
                     .until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".job_tit")))
@@ -87,9 +91,11 @@ class SaraminPageProcessor(
 
             try {
                 jobPostingRepository.save(entry)
+                crawlerStats.successCount.incrementAndGet()
                 results += entry
                 log.info("Saved Saramin entry #${idx + 1}: ${entry.title}")
             } catch (e: DataIntegrityViolationException) {
+                crawlerStats.saveFailCount.incrementAndGet()
                 log.warn("중복 링크로 저장 실패: {}", link)
             }
 
