@@ -50,5 +50,8 @@ data class JobPosting(
     val hiringEndAt: ZonedDateTime? = null,
 
     @Column
-    val skills: String? = null
+    val skills: String? = null,
+
+    @Column(nullable = false)
+    var indexed: Boolean = false
 ) : BaseEntity()
