@@ -17,6 +17,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.random.Random
+import pinggu.portforu_crawler.common.util.SlackNotifier
+import pinggu.portforu_crawler.stats.CrawlerStats
 
 @Component
 class SaraminPageProcessor(
