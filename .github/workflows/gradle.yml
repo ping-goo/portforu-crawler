@@ -57,30 +57,27 @@ jobs:
           echo "spring.datasource.password=${{ secrets.DB_PASSWORD }}" >> .env
 
       - name: Deploy to Private EC2 via Bastion
+        env:
+          ECR_REGISTRY: 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com
+          ECR_REPOSITORY: portforu-crawler
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Save bastion private key
           echo "${{ secrets.BASTION_SSH_KEY }}" > portforu-bastion.pem
           chmod 600 portforu-bastion.pem
           
-          # Connect via Bastion -> Private EC2
           ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem \
             -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
-            ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }} << EOF
-          
-            # Docker login to ECR (EC2 안에서)
-            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com
-          
-            # Docker pull latest image
-            docker pull 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
-          
-            # Stop and remove old container if exists
-            if [ \$(docker ps -q --filter "name=portforu-crawler") ]; then
-              docker stop portforu-crawler
-              docker rm portforu-crawler
-            fi
-          
-            # Run new container
-            docker run -d --name portforu-crawler -p 8081:8081 \
-              040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
-          
+            ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }} << 'EOF'
+            set -eux
+
+            aws ecr get-login-password --region ap-northeast-2 \
+              | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+            docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+            docker rm -f portforu-crawler || true
+
+            docker run -d --name portforu-crawler \
+              -p 8081:8080 \
+              $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           EOF
