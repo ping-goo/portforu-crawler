@@ -50,15 +50,21 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
+      - name: Create .env file
+        run: |
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+
       - name: Deploy to Private EC2 via Bastion
         run: |
           # Save bastion private key
-          echo "${{ secrets.BASTION_SSH_KEY }}" > bastion.pem
-          chmod 600 bastion.pem
+          echo "${{ secrets.BASTION_SSH_KEY }}" > portforu-bastion.pem
+          chmod 600 portforu-bastion.pem
           
           # Connect via Bastion -> Private EC2
-          ssh -o StrictHostKeyChecking=no -i bastion.pem \
-            -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
+          ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem \
+            -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
             ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }} << EOF
           
             # Docker login to ECR (EC2 안에서)
