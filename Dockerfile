@@ -20,7 +20,7 @@ FROM openjdk:17-jdk-slim
 SHELL ["/bin/bash","-euxo","pipefail","-c"]
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends xvfb \
+ && apt-get install -y --no-install-recommends xvfb xauth \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/bin/google-chrome-stable /usr/bin/
