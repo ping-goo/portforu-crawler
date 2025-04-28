@@ -5,10 +5,12 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import pinggu.portforu_crawler.common.ParallelCrawlerService
 import kotlinx.coroutines.runBlocking
+import pinggu.portforu_crawler.messaging.producer.CrawlFinishPublisher
 
 @Component
 class CrawlingScheduler(
-    private val parallelCrawlerService: ParallelCrawlerService
+    private val parallelCrawlerService: ParallelCrawlerService,
+    private val crawlFinishPublisher: CrawlFinishPublisher
 ) {
     private val log = LoggerFactory.getLogger(CrawlingScheduler::class.java)
 
@@ -24,6 +26,10 @@ class CrawlingScheduler(
                 val srPage = 1
                 parallelCrawlerService.crawlBoth(jkPage, srPage)
                 log.info("[스케줄링] 크롤링 완료")
+
+                // 크롤링 완료 알림 발행 추가
+                crawlFinishPublisher.publishCrawlFinished("AllSites", 0)
+                log.info("[스케줄링] 크롤링 완료 알림 발행")
             } catch (e: Exception) {
                 log.error("[스케줄링] 크롤링 실패: ${e.message}", e)
             }

@@ -12,7 +12,7 @@ class JobStatusCheckScheduler(
     private val jobStatusEventDispatcher: JobStatusEventDispatcher
 ) {
 
-    @Scheduled(cron = "0 44 7 * * *") // 매일 10시
+    @Scheduled(cron = "0 0 10 * * *") // 매일 10시
     fun checkClosingSoonJobs() {
         println("✅ [스케줄러] 오늘 마감하는 공고 체크 시작")
 
