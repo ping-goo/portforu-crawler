@@ -25,7 +25,6 @@ WORKDIR /app
 ARG JAR_FILE=build/libs/portforu-crawler-0.0.1-SNAPSHOT.jar
 COPY ${JAR_FILE} app.jar
 
-# 가상 X 서버에서 Java 실행
 ENTRYPOINT ["xvfb-run", "-a", "--server-args=-screen 0 1920x1080x24", \
              "java", \
                "-Dspring.profiles.active=prod", \
