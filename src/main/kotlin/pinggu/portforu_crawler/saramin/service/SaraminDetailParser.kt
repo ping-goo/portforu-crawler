@@ -23,7 +23,7 @@ class SaraminDetailParser {
     fun parseDetail(driver: WebDriver): SaraminJobDetailData? {
         return try {
 
-            // 회사명 (첫 로드시 바로 보이는 요소)
+            // 회사명
             val companyEl = WebDriverWait(driver, Duration.ofSeconds(10))
                 .until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("a.company")))
             val company = companyEl.getAttribute("title").trim()

@@ -12,10 +12,7 @@ import pinggu.portforu_crawler.common.ParallelCrawlerService
 class ParallelCrawlerController(
     private val parallelCrawlerService: ParallelCrawlerService
 ) {
-    /**
-     * GET /api/crawl/both?jkPage=1&saraminPage=2
-     * 두 크롤러를 동시에 실행하고, JSON으로 결과를 묶어 반환합니다.
-     */
+
     @GetMapping("/both")
     suspend fun crawlBoth(
         @RequestParam(defaultValue = "1") jkPage: Int,
