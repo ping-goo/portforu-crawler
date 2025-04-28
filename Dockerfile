@@ -27,6 +27,7 @@ COPY --from=builder /usr/bin/google-chrome-stable /usr/bin/
 COPY --from=builder /usr/local/bin/chromedriver /usr/local/bin/
 
 WORKDIR /app
+
 COPY build/libs/portforu-crawler-0.0.1-SNAPSHOT.jar app.jar
 
 ENTRYPOINT ["xvfb-run","-a","--server-args=-screen 0 1920x1080x24","java","-Dspring.profiles.active=prod","-Dchrome.options.args=--no-sandbox,--disable-dev-shm-usage","-jar","app.jar"]
