@@ -1,4 +1,4 @@
-name: CI/CD for PortForU-Crawler (ECR)
+name: CI/CD for PortForU-Crawler (ECR & Deploy via Bastion)
 
 on:
   push:
@@ -34,8 +34,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_EB_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_EB_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
       - name: Login to Amazon ECR
@@ -49,3 +49,32 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Deploy to Private EC2 via Bastion
+        run: |
+          # Save bastion private key
+          echo "${{ secrets.BASTION_SSH_KEY }}" > bastion.pem
+          chmod 600 bastion.pem
+          
+          # Connect via Bastion -> Private EC2
+          ssh -o StrictHostKeyChecking=no -i bastion.pem \
+            -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
+            ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }} << EOF
+          
+            # Docker login to ECR (EC2 안에서)
+            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com
+          
+            # Docker pull latest image
+            docker pull 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
+          
+            # Stop and remove old container if exists
+            if [ \$(docker ps -q --filter "name=portforu-crawler") ]; then
+              docker stop portforu-crawler
+              docker rm portforu-crawler
+            fi
+          
+            # Run new container
+            docker run -d --name portforu-crawler -p 8081:8081 \
+              040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
+          
+          EOF
