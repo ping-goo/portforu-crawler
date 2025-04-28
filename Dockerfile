@@ -1,4 +1,4 @@
-FROM openjdk:17-jdk-slim as builder
+FROM openjdk:17-jdk-slim AS builder
 
 WORKDIR /build
 
@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
          "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VER}/chromedriver_linux64.zip" \
     && unzip /tmp/chromedriver_linux64.zip -d /usr/local/bin \
     && chmod +x /usr/local/bin/chromedriver \
-    && rm -rf /tmp/* /var/lib/apt/lists/*
+    && rm -rf /tmp/* /var/lib/apt/lists/* \
 
 FROM openjdk:17-jdk-slim
 
