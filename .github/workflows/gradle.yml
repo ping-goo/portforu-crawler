@@ -53,7 +53,7 @@ jobs:
       - name: Create .env file
         run: |
           echo "spring.datasource.url=${{ secrets.DB_URL }}" >> .env
-          echo "spring.datasource.username=${{ secrets.DB_USERNAME }}" >> .env
+          echo "spring.datasource.username=${{ secrets.DB_USER }}" >> .env
           echo "spring.datasource.password=${{ secrets.DB_PASSWORD }}" >> .env
 
       - name: Save Bastion private key
