@@ -1,8 +1,12 @@
-name: CI/CD for PortForU-Crawler (ECR & Deploy via Bastion with .env)
+name: CI/CD for PortForU-Crawler (ECR & Deploy via Bastion)
 
 on:
   push:
     branches: [ "dev" ]
+
+env:
+  ECR_REGISTRY: 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com
+  ECR_REPOSITORY: portforu-crawler
 
 jobs:
   build-and-deploy:
@@ -43,8 +47,6 @@ jobs:
 
       - name: Build & Push Docker image to ECR
         env:
-          ECR_REGISTRY: 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com
-          ECR_REPOSITORY: portforu-crawler
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
@@ -52,7 +54,7 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "spring.datasource.url=${{ secrets.DB_URL }}" >> .env
+          echo "spring.datasource.url=${{ secrets.DB_URL }}"        > .env
           echo "spring.datasource.username=${{ secrets.DB_USER }}" >> .env
           echo "spring.datasource.password=${{ secrets.DB_PASSWORD }}" >> .env
 
@@ -61,32 +63,41 @@ jobs:
           echo "${{ secrets.BASTION_SSH_KEY }}" > portforu-bastion.pem
           chmod 600 portforu-bastion.pem
 
-      - name: Copy .env file to EC2 (via Bastion)
+      - name: Copy .env file to EC2 via Bastion
         run: |
-          scp -o StrictHostKeyChecking=no -i portforu-bastion.pem \
-          -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
-          .env ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }}:/home/ubuntu/.env
+          scp \
+            -o StrictHostKeyChecking=no \
+            -i portforu-bastion.pem \
+            -o ProxyJump=${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
+            .env \
+            ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }}:/home/ubuntu/.env
 
       - name: Deploy to Private EC2 via Bastion
         run: |
-          ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem \
-          -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
-          ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }} << EOF
-            
-            # Docker login to ECR
-            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com
-            
-            # Docker pull latest image
-            docker pull 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
-            
-            # Stop and remove old container if exists
-            if [ \$(docker ps -a -q --filter "name=portforu-crawler") ]; then
-              docker stop portforu-crawler || true
-              docker rm portforu-crawler
-            fi
-            
-            # Run new container with --env-file
-            docker run -d --name portforu-crawler --env-file /home/ubuntu/.env -p 8081:8081 \
-              040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
-            
-          EOF
+          ssh \
+            -o StrictHostKeyChecking=no \
+            -i portforu-bastion.pem \
+            -o ProxyJump=${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
+            ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }} << 'EOF'
+          
+              # 1) ECR 로그인
+              aws ecr get-login-password --region ap-northeast-2 \
+                | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+              # 2) 새 이미지 Pull
+              docker pull $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+
+              # 3) 기존 컨테이너 중지/제거
+              if docker ps -a --filter "name=portforu-crawler" -q | grep -q .; then
+                docker stop portforu-crawler || true
+                docker rm   portforu-crawler || true
+              fi
+
+              # 4) 새 컨테이너 실행
+              docker run -d \
+                --name portforu-crawler \
+                --env-file /home/ubuntu/.env \
+                -p 8081:8081 \
+                $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+
+            EOF
