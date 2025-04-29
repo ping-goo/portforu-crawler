@@ -52,7 +52,7 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "spring.datasource.url=${{ secrets.DB_URL }}" > .env
+          echo "spring.datasource.url=${{ secrets.DB_URL }}" >> .env
           echo "spring.datasource.username=${{ secrets.DB_USER }}" >> .env
           echo "spring.datasource.password=${{ secrets.DB_PASSWORD }}" >> .env
 
@@ -61,43 +61,32 @@ jobs:
           echo "${{ secrets.BASTION_SSH_KEY }}" > portforu-bastion.pem
           chmod 600 portforu-bastion.pem
 
-      - name: Copy .env file to EC2 via Bastion
+      - name: Copy .env file to EC2 (via Bastion)
         run: |
-          # register Bastion's host key so proxy connection succeeds
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.BASTION_HOST }} >> ~/.ssh/known_hosts
-
-          scp \
-            -i portforu-bastion.pem \
-            -o ProxyCommand="ssh -i portforu-bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
-            -o StrictHostKeyChecking=no \
-            .env \
-            ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }}:/home/ubuntu/.env
+          scp -o StrictHostKeyChecking=no -i portforu-bastion.pem \
+          -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
+          .env ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }}:/home/ubuntu/.env
 
       - name: Deploy to Private EC2 via Bastion
         run: |
-          ssh \
-            -i portforu-bastion.pem \
-            -o ProxyCommand="ssh -i portforu-bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
-            -o StrictHostKeyChecking=no \
-            ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem \
+          -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
+          ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }} << EOF
           
             # Docker login to ECR
             aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com
           
-            # Pull the new image
+            # Docker pull latest image
             docker pull 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
           
-            # Stop & remove old container
-            if [ "$(docker ps -a -q --filter name=portforu-crawler)" ]; then
+            # Stop and remove old container if exists
+            if [ \$(docker ps -a -q --filter "name=portforu-crawler") ]; then
               docker stop portforu-crawler || true
               docker rm portforu-crawler
             fi
           
-            # Run new container
-            docker run -d --name portforu-crawler \
-              --env-file /home/ubuntu/.env \
-              -p 8081:8081 \
+            # Run new container with --env-file
+            docker run -d --name portforu-crawler --env-file /home/ubuntu/.env -p 8081:8081 \
               040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
           
           EOF
