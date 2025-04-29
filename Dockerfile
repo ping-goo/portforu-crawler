@@ -18,7 +18,7 @@ SHELL ["/bin/bash","-euxo","pipefail","-c"]
 
 # Chrome APT repository 설정
 RUN apt-get update \
- && apt-get install -y --no-install-recommends wget gnupg ca-certificates \
+ && apt-get install -y --no-install-recommends wget gnupg ca-certificates curl \
  && mkdir -p /etc/apt/keyrings \
  && curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
       | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg \
@@ -42,7 +42,5 @@ COPY --from=builder /usr/local/bin/chromedriver /usr/local/bin/
 WORKDIR /app
 COPY build/libs/portforu-crawler-0.0.1-SNAPSHOT.jar app.jar
 
-# Headless 옵션 포함 ENTRYPOINT
-ENTRYPOINT ["java",
-    "-Dchrome.options.args=--headless,--no-sandbox,--disable-dev-shm-usage,--disable-gpu",
-    "-jar", "app.jar"]
+# Headless 옵션 포함 ENTRYPOINT (한 줄 작성)
+ENTRYPOINT ["java", "-Dchrome.options.args=--headless,--no-sandbox,--disable-dev-shm-usage,--disable-gpu", "-jar", "app.jar"]
