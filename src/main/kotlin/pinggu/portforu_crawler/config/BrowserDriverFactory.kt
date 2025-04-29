@@ -1,6 +1,5 @@
 package pinggu.portforu_crawler.config
 
-import io.github.bonigarcia.wdm.WebDriverManager
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
@@ -29,10 +28,7 @@ class BrowserDriverFactory {
             addArguments("--disable-features=NetworkService")
             addArguments("--remote-debugging-port=${(9222..9299).random()}")
 
-            // --user-data-dir 옵션 제거 (기본 임시 프로필 사용)
         }
-
-        WebDriverManager.chromedriver().setup()
         return ChromeDriver(options)
     }
 }
