@@ -53,34 +53,40 @@ jobs:
       - name: Create .env file
         run: |
           echo "spring.datasource.url=${{ secrets.DB_URL }}" >> .env
-          echo "spring.datasource.username=${{ secrets.DB_USERNAME }}" >> .env
+          echo "spring.datasource.username=${{ secrets.DB_USER }}" >> .env
           echo "spring.datasource.password=${{ secrets.DB_PASSWORD }}" >> .env
+
+      - name: Save Bastion private key
+        run: |
+          echo "${{ secrets.BASTION_SSH_KEY }}" > portforu-bastion.pem
+          chmod 600 portforu-bastion.pem
+
+      - name: Copy .env file to EC2 (via Bastion)
+        run: |
+          scp -o StrictHostKeyChecking=no -i portforu-bastion.pem \
+          -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
+          .env ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }}:/home/ubuntu/.env
 
       - name: Deploy to Private EC2 via Bastion
         run: |
-          # Save bastion private key
-          echo "${{ secrets.BASTION_SSH_KEY }}" > portforu-bastion.pem
-          chmod 600 portforu-bastion.pem
-          
-          # Connect via Bastion -> Private EC2
           ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem \
-            -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
-            ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }} << EOF
-          
-            # Docker login to ECR (EC2 안에서)
+          -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i portforu-bastion.pem -W %h:%p ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }}" \
+          ${{ secrets.PRIVATE_USER }}@${{ secrets.PRIVATE_HOST }} << EOF
+            
+            # Docker login to ECR
             aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com
-          
+            
             # Docker pull latest image
             docker pull 040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
-          
+            
             # Stop and remove old container if exists
             if [ \$(docker ps -a -q --filter "name=portforu-crawler") ]; then
               docker stop portforu-crawler || true
               docker rm portforu-crawler
             fi
-          
-            # Run new container
-            docker run -d --name portforu-crawler -p 8081:8081 \
+            
+            # Run new container with --env-file
+            docker run -d --name portforu-crawler --env-file /home/ubuntu/.env -p 8081:8081 \
               040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
-          
+            
           EOF
