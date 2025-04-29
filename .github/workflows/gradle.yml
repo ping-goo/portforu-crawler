@@ -88,5 +88,5 @@ jobs:
             # Run new container with --env-file
             docker run -d --name portforu-crawler --env-file /home/ubuntu/.env -p 8081:8081 \
               040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
-          
+        
           EOF
