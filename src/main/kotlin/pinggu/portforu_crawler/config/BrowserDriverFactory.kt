@@ -16,11 +16,10 @@ class BrowserDriverFactory {
 
         val options = ChromeOptions().apply {
             // Headless 모드 활성화
-            addArguments("--headless")
+            addArguments("--headless=new")
             addArguments("--disable-gpu")
 
             // 기타 필요한 옵션
-            addArguments("--start-maximized")
             addArguments("--window-size=1920,1080")
             addArguments("--remote-allow-origins=*")
             addArguments("--disable-dev-shm-usage", "--no-sandbox")
