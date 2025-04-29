@@ -50,3 +50,4 @@ COPY build/libs/portforu-crawler-0.0.1-SNAPSHOT.jar app.jar
 
 # Run Java application with Chrome options for headless operation
 ENTRYPOINT ["java", "-Dchrome.options.args=--headless,--no-sandbox,--disable-dev-shm-usage,--disable-gpu", "-jar", "app.jar"]
+
