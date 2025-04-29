@@ -2,6 +2,7 @@ FROM openjdk:17-jdk-slim AS builder
 SHELL ["/bin/bash","-euxo","pipefail","-c"]
 WORKDIR /build
 
+# Install Chrome and Chromedriver
 RUN apt-get update \
  && apt-get install -y --no-install-recommends wget gnupg ca-certificates curl unzip \
  && mkdir -p /etc/apt/keyrings \
@@ -16,17 +17,36 @@ RUN apt-get update \
  && chmod +x /usr/local/bin/chromedriver \
  && rm -rf /tmp/* /var/lib/apt/lists/*
 
+
 FROM openjdk:17-jdk-slim
 SHELL ["/bin/bash","-euxo","pipefail","-c"]
 
+# Install XVFB, XAuth and required libraries for ChromeDriver
 RUN apt-get update \
- && apt-get install -y --no-install-recommends xvfb xauth \
+ && apt-get install -y --no-install-recommends \
+    xvfb xauth \
+    libglib2.0-0 \
+    libnss3 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxrandr2 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libgtk-3-0 \
+    libgbm1 \
+    libasound2 \
+    libcups2 \
+    libdrm2 \
  && rm -rf /var/lib/apt/lists/*
 
+# Copy Chrome and Chromedriver from builder
 COPY --from=builder /usr/bin/google-chrome-stable /usr/bin/
 COPY --from=builder /usr/local/bin/chromedriver /usr/local/bin/
 
 WORKDIR /app
 COPY build/libs/portforu-crawler-0.0.1-SNAPSHOT.jar app.jar
 
-ENTRYPOINT ["java","-Dchrome.options.args=--no-sandbox,--disable-dev-shm-usage","-jar","app.jar"]
+# Run Java application with Chrome options for headless operation
+ENTRYPOINT ["java", "-Dchrome.options.args=--headless,--no-sandbox,--disable-dev-shm-usage,--disable-gpu", "-jar", "app.jar"]
