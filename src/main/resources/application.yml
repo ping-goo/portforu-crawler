@@ -11,7 +11,7 @@ spring:
 
   web:
     async:
-      request-timeout: 60000  # 60초 (기본은 30초)
+      request-timeout: 600000  # 60초 (기본은 30초)
 
   jpa:
     hibernate:
