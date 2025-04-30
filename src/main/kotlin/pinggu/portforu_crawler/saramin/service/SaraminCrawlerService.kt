@@ -22,7 +22,13 @@ class SaraminCrawlerService(
         try {
             log.info("Harvesting Saramin page {}", pageNum)
             // 단일 페이지만 fetch
-            pageProcessor.fetchEntries(pageNum, baseUrl, driver)
+
+            val entries = pageProcessor.fetchEntries(pageNum,baseUrl,driver)
+            log.info("Fetched {} entries from page {}", entries.size, pageNum)
+            return@withContext entries
+        } catch (e: Exception) {
+            log.error("Error harvesting page {}: {}", pageNum, e.message, e)  // 예외 발생 시 로그 추가
+            return@withContext emptyList<JobPosting>()
         } finally {
             driver.quit()
         }

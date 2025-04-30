@@ -49,6 +49,7 @@ class SaraminPageProcessor(
             }
 
         for ((idx, link) in links.withIndex()) {
+            log.debug("Processing link #{}: {}", idx + 1, link)  // 추가된 로그
 
             if (!urlBloomFilter.isNewUrl(link)) {
                 log.debug("이미 처리된 링크(Bloom), 스킵: {}", link)
