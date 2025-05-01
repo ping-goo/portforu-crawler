@@ -14,10 +14,9 @@ class CrawlFinishPublisher(
             "crawledCount" to crawledCount,
             "finishedAt" to LocalDateTime.now().toString()
         )
-        rabbitTemplate.convertAndSend(
-            pinggu.portforu_crawler.messaging.config.RabbitMQConfig.CRAWL_COMPLETE_EXCHANGE,
-            pinggu.portforu_crawler.messaging.config.RabbitMQConfig.CRAWL_COMPLETE_ROUTING_KEY,
-            message
-        )
+
+        rabbitTemplate.convertAndSend("crawl.complete.queue", message)
+        println("[RabbitMQ] 크롤링 완료 메시지 (Direct 방식) 발행됨: $message")
+        println("[RabbitMQ] 크롤링 완료 메시지 발행됨: $message")
     }
 }

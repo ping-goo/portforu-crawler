@@ -6,6 +6,10 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.amqp.core.Queue
 import org.springframework.amqp.core.TopicExchange
+import org.springframework.amqp.rabbit.connection.ConnectionFactory
+import org.springframework.amqp.rabbit.core.RabbitTemplate
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter
+import org.springframework.amqp.support.converter.MessageConverter
 
 @Configuration
 class RabbitMQConfig {
@@ -50,5 +54,19 @@ class RabbitMQConfig {
             .bind(crawlCompleteQueue())
             .to(crawlCompleteExchange())
             .with(CRAWL_COMPLETE_ROUTING_KEY)
+    }
+
+    // 메시지 컨버터 추가 (JSON 직렬화 사용)
+    @Bean
+    fun messageConverter(): MessageConverter {
+        return Jackson2JsonMessageConverter()
+    }
+
+    // RabbitTemplate에 컨버터 주입
+    @Bean
+    fun rabbitTemplate(connectionFactory: ConnectionFactory, messageConverter: MessageConverter): RabbitTemplate {
+        val template = RabbitTemplate(connectionFactory)
+        template.messageConverter = messageConverter
+        return template
     }
 }
