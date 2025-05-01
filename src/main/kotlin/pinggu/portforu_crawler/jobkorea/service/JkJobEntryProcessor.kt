@@ -11,6 +11,10 @@ import pinggu.portforu_crawler.config.UrlBloomFilterService
 import pinggu.portforu_crawler.common.util.SlackNotifier
 import pinggu.portforu_crawler.stats.CrawlerStats
 import pinggu.portforu_crawler.common.util.SkillNormalizer
+import pinggu.portforu_crawler.messaging.dto.JobCloseEvent
+import pinggu.portforu_crawler.messaging.producer.JobCloseEventPublisher
+import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 import kotlin.random.Random
 
 @Component
@@ -20,7 +24,8 @@ class JkJobEntryProcessor(
     private val jobPostingRepository: JobPostingRepository,
     private val urlBloomFilter: UrlBloomFilterService,  
     private val slackNotifier: SlackNotifier,          
-    private val crawlerStats: CrawlerStats          
+    private val crawlerStats: CrawlerStats,
+    private val jobCloseEventPublisher: JobCloseEventPublisher
 ) {
     private val logger = LoggerFactory.getLogger(JkJobEntryProcessor::class.java)
 
@@ -76,10 +81,25 @@ class JkJobEntryProcessor(
         if (jobPostingRepository.findByLink(link) == null) {
             try {
                 jobPostingRepository.save(jobPosting)
-         
                 jkTagService.saveTags(tags, jobPosting)
                 crawlerStats.successCount.incrementAndGet()
                 logger.info("Saved JobKorea entry: {}", jobPosting.title)
+
+                // Delay 또는 즉시 발송 처리
+                jobPosting.hiringEndAt?.let { endAt ->
+                    val now = ZonedDateTime.now()
+                    val delayMillis = ChronoUnit.MILLIS.between(now, endAt.minusDays(1))
+                    val event = JobCloseEvent(jobPosting.id!!, jobPosting.title)
+
+                    if (delayMillis > 0) {
+                        jobCloseEventPublisher.publishWithDelay(event, delayMillis)
+                        logger.info("⏳ Delay 예약 발송: {} ({}ms)", jobPosting.title, delayMillis)
+                    } else {
+                        jobCloseEventPublisher.publishImmediately(event)
+                        logger.info("마감 임박 → 즉시 발송: {}", jobPosting.title)
+                    }
+                }
+
             } catch (e: DataIntegrityViolationException) {
                 crawlerStats.saveFailCount.incrementAndGet()
                 logger.warn("중복 링크로 저장 실패: {}", link)
