@@ -55,6 +55,8 @@ jobs:
           echo "spring.datasource.url=${{ secrets.DB_URL }}" >> .env
           echo "spring.datasource.username=${{ secrets.DB_USER }}" >> .env
           echo "spring.datasource.password=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "SPRING_DATA_REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
+          echo "SPRING_DATA_REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
 
       - name: Save Bastion private key
         run: |
@@ -88,5 +90,5 @@ jobs:
             # Run new container with --env-file
             docker run -d --name portforu-crawler --env-file /home/ubuntu/.env -p 8081:8081 \
               040067931167.dkr.ecr.ap-northeast-2.amazonaws.com/portforu-crawler:${{ github.sha }}
-        
+          
           EOF
