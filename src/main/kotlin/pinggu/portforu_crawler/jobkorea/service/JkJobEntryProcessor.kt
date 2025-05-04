@@ -93,7 +93,7 @@ class JkJobEntryProcessor(
 
                     if (delayMillis > 0) {
                         jobCloseEventPublisher.publishWithDelay(event, delayMillis)
-                        logger.info("⏳ Delay 예약 발송: {} ({}ms)", jobPosting.title, delayMillis)
+                        logger.info("Delay 예약 발송: {} ({}ms)", jobPosting.title, delayMillis)
                     } else {
                         jobCloseEventPublisher.publishImmediately(event)
                         logger.info("마감 임박 → 즉시 발송: {}", jobPosting.title)

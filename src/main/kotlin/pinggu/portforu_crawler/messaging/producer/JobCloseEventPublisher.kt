@@ -17,7 +17,7 @@ class JobCloseEventPublisher(
         val body = objectMapper.writeValueAsBytes(event)
         val message = MessageBuilder.withBody(body)
             .setContentType(MessageProperties.CONTENT_TYPE_JSON)
-            .setExpiration(delayMillis.toString()) // 🔥 TTL(ms)
+            .setExpiration(delayMillis.toString()) // TTL(ms)
             .build()
 
         amqpTemplate.send(RabbitMQConfig.JOB_CLOSING_DELAY_QUEUE, message)
@@ -31,6 +31,6 @@ class JobCloseEventPublisher(
             .build()
 
         amqpTemplate.send(RabbitMQConfig.JOB_CLOSING_FINAL_QUEUE, message)
-        println("📨 즉시 발송 → ${RabbitMQConfig.JOB_CLOSING_FINAL_QUEUE}: $event")
+        println(" 즉시 발송 → ${RabbitMQConfig.JOB_CLOSING_FINAL_QUEUE}: $event")
     }
 }

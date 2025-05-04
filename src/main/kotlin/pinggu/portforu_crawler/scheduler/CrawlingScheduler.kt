@@ -34,7 +34,7 @@ class CrawlingScheduler(
                 crawlFinishPublisher.publishCrawlFinished("AllSites", 0)
                 log.info("[스케줄링] 크롤링 완료 알림 발행")
 
-                // ✅ 여기서 Slack 알림 바로 전송
+                // 여기서 Slack 알림 바로 전송
                 val message = """
                     JobKorea 크롤링 완료
                     수집 성공: ${crawlerStats.successCount.get()} 건
