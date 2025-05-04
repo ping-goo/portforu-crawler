@@ -52,11 +52,16 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "spring.datasource.url=${{ secrets.DB_URL }}" >> .env
-          echo "spring.datasource.username=${{ secrets.DB_USER }}" >> .env
-          echo "spring.datasource.password=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "SPRING_DATASOURCE_URL=${{ secrets.DB_URL }}" >> .env
+          echo "SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USER }}" >> .env
+          echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
           echo "SPRING_DATA_REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
           echo "SPRING_DATA_REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
+          echo "SPRING_RABBITMQ_HOST=${{ secrets.RABBITMQ_HOST }}" >> .env
+          echo "SPRING_RABBITMQ_PORT=${{ secrets.RABBITMQ_PORT }}" >> .env
+          echo "SPRING_RABBITMQ_USERNAME=${{ secrets.RABBITMQ_USERNAME }}" >> .env
+          echo "SPRING_RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }}" >> .env
+          echo "SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}" >> .env
 
       - name: Save Bastion private key
         run: |
