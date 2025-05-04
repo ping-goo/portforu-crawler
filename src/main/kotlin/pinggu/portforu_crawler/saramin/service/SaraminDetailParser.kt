@@ -13,7 +13,6 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-
 @Component
 class SaraminDetailParser {
     private val log: Logger = LoggerFactory.getLogger(SaraminDetailParser::class.java)
@@ -21,9 +20,9 @@ class SaraminDetailParser {
     private val zoneId = ZoneId.of("Asia/Seoul")
 
     fun parseDetail(driver: WebDriver): SaraminJobDetailData? {
+        log.info("Parsing job details")
         return try {
-
-            // 회사명 (첫 로드시 바로 보이는 요소)
+            // 회사명
             val companyEl = WebDriverWait(driver, Duration.ofSeconds(10))
                 .until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("a.company")))
             val company = companyEl.getAttribute("title").trim()
