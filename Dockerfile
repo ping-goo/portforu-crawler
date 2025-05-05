@@ -45,4 +45,3 @@ COPY build/libs/portforu-crawler-0.0.1-SNAPSHOT.jar app.jar
 # Headless 옵션 포함 ENTRYPOINT (한 줄 작성)
 ENTRYPOINT ["java", "-Dchrome.options.args=--headless,--no-sandbox,--disable-dev-shm-usage,--disable-gpu", "-jar", "app.jar"]
 
-
